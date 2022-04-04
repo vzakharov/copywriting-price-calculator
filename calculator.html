@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/4206/4206277.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <!-- lodash -->
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <title>Price calculator | Vova Zakharov</title>
+    <meta name="description" content="
+      Vova Zakharov, copywriter specializing in explaining complex topics in clear, concise, and engaging ways.
+    ">
+  </head>
+  <body>
+    <script>
+
+      // create global "items" array
+      items = []      
+
+      // function to calculate words per piece based on the type of copy and the length of the copy
+      function calculateWordsPerPiece(item) {
+        let copyTypeElement = item.getElementsByClassName('copy-type')[0]
+        let copyLengthElement = item.getElementsByClassName('copy-length')[0]
+        let copyType = copyTypeElement.value
+        let copyLength = copyLengthElement.value
+        let wordsPerPiece = 0
+
+        // For options that don't depend on the copy length, disable the length selector and
+        // and set its value to "n/a"
+        // For other options, enable the length selector and set the value to "Short", if not already set
+        if ([
+          "onePager",
+          "whitepaper",
+          "pressRelease",
+          "googleAd"
+        ].includes(copyType)) {
+          copyLengthElement.disabled = true
+          copyLengthElement.value = ""
+        } else {
+          copyLengthElement.disabled = false
+          if (copyLengthElement.value === "") {
+            copyLengthElement.value = "medium"
+          }
+        }
+
+        mappings = {
+          landingPage: {
+            short: 300,
+            medium: 500,
+            long: 700
+          },
+          blogPost: {
+            short: 700,
+            medium: 1000,
+            long: 1300
+          },
+          email: {
+            short: 100,
+            medium: 200,
+            long: 300
+          },
+          socialMediaPost: {
+            short: 50,
+            medium: 100,
+            long: 150
+          },
+          onePager: 400,
+          whitepaper: 3000,
+          pressRelease: 500,
+          googleAd: 50,
+          other: {
+            short: 200,
+            medium: 500,
+            long: 800
+          }
+        }
+
+        wordsPerPiece = _.isObject(mappings[copyType]) ?
+          copyLength ? mappings[copyType][copyLength] : mappings[copyType]["medium"] :
+          mappings[copyType]
+
+        // Set the words per piece in the respective input field
+        item.getElementsByClassName('words-per-piece')[0].value = wordsPerPiece
+
+        calculateTotalWords(item)
+      }
+    
+      // function to calculate the total words based on the words per piece and quantity
+      function calculateTotalWords(item) {
+        let wordsPerPiece = parseInt(item.getElementsByClassName('words-per-piece')[0].value)
+        let quantity = parseInt(item.getElementsByClassName('quantity')[0].value)
+        item.getElementsByClassName('total-words')[0].value = wordsPerPiece * quantity
+
+        // get the grand total words
+        calculateGrandTotalWords()
+      }
+
+      // function to calculate the grand total words
+      function calculateGrandTotalWords() {
+        let grandTotalWordsElement = document.getElementById('grand-total-words')
+        let grandTotalWords = _.sumBy(items, item => parseInt(item.getElementsByClassName('total-words')[0].value))
+        
+        // round up to the nearest 100
+        grandTotalWords = Math.ceil(grandTotalWords / 50) * 50
+        grandTotalWordsElement.innerHTML = grandTotalWords
+
+        // calculate the grand total price
+        calculateGrandTotalPrice()
+      }
+
+      // function to calculate the grand total price
+      function calculateGrandTotalPrice() {
+        // Calculated as follows:
+        // - The target earnings per hour (eph) are $150
+        // - Words per hour (wph) are calculated as (a*x + b*k)/(x+k), where:
+        // -- x is the number of words
+        // -- a = 1300
+        // -- b = 250
+        // -- k = 1900
+        // - Hence, the target price=earnings per word (epw) is eph/wph
+
+        let grandTotalWords = parseInt(document.getElementById('grand-total-words').innerHTML)
+        let [ eph, a, b, k, x ] = [ 150, 1300, 250, 1900, grandTotalWords ]
+        let wph = (a*x + b*k)/(x+k)
+        // console.log({wph})
+        let epw = eph/wph
+        // console.log({epw})
+        
+        // Total price is epw * total words, rounded up to the nearest 20 dollars, minus 1
+        let totalPrice = epw * grandTotalWords
+        let mod100 = totalPrice % 100
+        let roundup = 20
+        totalPrice = Math.ceil(totalPrice / roundup) * roundup - 1
+        let totalCentsPerWord = Math.round(totalPrice / grandTotalWords * 100)
+
+        // console.log({totalPrice})
+
+        document.getElementById('grand-total-price').innerHTML = '$'+totalPrice+'<sup>*</sup>'
+        document.getElementById('total-cents-per-word').innerHTML = totalCentsPerWord
+
+      }
+
+      // function to back-calculate the words per piece based on the total words and quantity
+      function calculateWordsPerPieceFromTotalWords(item) {
+
+        // back-calculate the words per piece if the total words was changed manually
+        let totalWords = parseInt(item.getElementsByClassName('total-words')[0].value)
+        let quantity = parseInt(item.getElementsByClassName('quantity')[0].value)
+        item.getElementsByClassName('words-per-piece')[0].value = Math.round(totalWords / quantity / 10) * 10
+
+        // get the grand total words
+        calculateGrandTotalWords()
+      }
+
+      // function to add listeners to a certain item's inputs
+      function addListeners(item) {
+
+        let elementClasses = {
+          copyType: "copy-type",
+          copyLength: "copy-length",
+          wordsPerPiece: "words-per-piece",
+          quantity: "quantity",
+          totalWords: "total-words"
+        }
+
+        let elements = _.mapValues(elementClasses, value => item.getElementsByClassName(value)[0])
+
+        let listeners = {
+          copyType: calculateWordsPerPiece,
+          copyLength: calculateWordsPerPiece,
+          wordsPerPiece: calculateTotalWords,
+          quantity: calculateTotalWords,
+          totalWords: calculateWordsPerPieceFromTotalWords
+        }
+
+        _.forEach(listeners, (listener, key) => {
+          elements[key].addEventListener('input', () => listener(item))
+        })
+
+      }
+    </script>
+    <!-- 
+      Order form, including a table with types of copy and their prices.
+      New lines are added to the table by pressing the "Add line" button.
+      The "Order" button sends an email to vzakharov@gmail.com with the order details filled in.
+    !-->
+    <div class="container">
+      <div class="row">
+        <div class="col-12">
+          <h1 class="text-center py-3">Copywriting price calculator</h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12">
+          <!-- Input with general info -->
+          <div class="form-group my-3">
+            <label for="general-info">
+              <h4>General info</h4>
+              <p>
+                Please describe the project you are working on in as much detail as possible.<br>
+                Include any references, links, etc. that you think will be helpful.
+              </p>
+            </label>
+            <input type="text" class="form-control" id="general-info" placeholder="General info">
+          </div>
+          <h4 class="my-3">
+            Copy requested
+          </h4>
+          <table class="table table-striped table-bordered">
+            <thead>
+              <tr>
+                <th scope="col">Type of copy</th>
+                <th scope="col">Length</th>
+                <th scope="col">Words per piece</th>
+                <th scope="col">Quantity</th>
+                <th scope="col">Total words</th>
+                <th scope="col">Comments</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="copy-line">
+                <td>
+                  <div class="form-group">
+                    <select class="form-control copy-type">
+                      <option value="landingPage">Landing page</option>
+                      <option value="blogPost">Blog post</option>
+                      <option value="email">Email</option>
+                      <option value="socialMediaPost">Social media post</option>
+                      <option value="onePager">One-pager</option>
+                      <option value="whitepaper">Whitepaper</option>
+                      <option value="pressRelease">Press release</option>
+                      <option value="googleAd">Google ad</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </td>
+                <td>
+                  <div class="form-group">
+                    <select class="form-control copy-length">
+                      <option value="medium">Normal</option>
+                      <option value="short">Short</option>
+                      <option value="long">Long</option>
+                    </select>
+                  </div>
+                </td>
+                <td>
+                  <div class="form-group">
+                    <!-- multiples of 50 -->
+                    <input type="number" class="form-control words-per-piece" value="500"
+                      min="50" step="50"
+                      onchange="this.value = Math.max(Math.round(this.value / 50) * 50, 50)"
+                    >
+                  </div>
+                </td>
+                <td>
+                  <div class="form-group">
+                    <input type="number" class="form-control quantity" value="1"
+                      min="1"
+                      onchange="this.value = Math.max(this.value, 1)"
+                    >
+                  </div>
+                </td>
+                <td>
+                  <div class="form-group">
+                    <input type="number" class="form-control total-words" value="500"
+                      min="50" step="50"
+                      onchange="this.value = Math.max(Math.round(this.value / 50) * 50, 50)"
+                    >
+                  </div>
+                </td>
+                <script>
+                  items.push(_.last(document.getElementsByClassName('copy-line')))
+                  let item = _.last(items)
+                  addListeners(item)
+                </script>
+                <td>
+                  <div class="form-group">
+                    <input type="text" class="form-control comments" value="">
+                  </div>
+                </td>
+              </tr>
+              <!-- 
+                Button to add a new line to the table.
+                Works by cloning the last element from the items array and appending it to the table.
+              !-->
+              <tr>
+                <td colspan="6">
+                  <!-- Add line -->
+                  <button class="btn btn-outline-secondary btn-sm float-end" onclick="addLine()">
+                    Add line
+                  </button>
+                  <!-- Remove line, invisible by default -->
+                  <button id="remove-line" class="btn btn-outline-danger btn-sm float-end mx-5" style="display: none;" onclick="removeLine()">
+                    Remove last line
+                  </button>
+                </td>
+                <script>
+                  // function to add a new line to the table
+                  function addLine() {
+                    // clone the last element from the items array
+                    let lastItem = _.last(items)
+                    let item = lastItem.cloneNode(true)
+                    // insert the cloned element after the last items element
+                    lastItem.parentNode.insertBefore(item, lastItem.nextSibling)
+                    // add the cloned element to the items array
+                    items.push(item)
+                    // add listeners to the cloned element
+                    addListeners(item)
+                    // show the remove line button if it is hidden
+                    document.getElementById('remove-line').style.display = 'block'
+                  }
+
+                  // function to remove a line from the table
+                  function removeLine() {
+                    // get the last element from the items array
+                    let lastItem = _.last(items)
+                    // remove the last element from the items array
+                    items.pop()
+                    // remove the last element from the table
+                    lastItem.parentNode.removeChild(lastItem)
+                    // if this was the penultimate element, hide the remove line button
+                    if (items.length === 1) {
+                      document.getElementById('remove-line').style.display = 'none'
+                    }
+                  }
+                </script>
+              </tr>
+            </tbody>
+            <tfoot>
+              <!-- Grand total words -->
+              <tr>
+                <th colspan="4" scope="row">Grand total words</th>
+                <td colspan="2">
+                  <span id="grand-total-words" style="font-size: 1.2rem;">
+                    500
+                  </span>
+                </td>
+              </tr>
+              <!-- Grand total price -->
+              <tr>
+                <th colspan="4" scope="row">Grand total price</th>
+                <td colspan="2">
+                  <span id="grand-total-price" style="font-size: 1.5rem; font-weight: bold;">
+                    $0
+                  </span>
+                  <span style="font-size: 0.8rem;">
+                    (<span id="total-cents-per-word">32</span>¢ per word)
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <th colspan="6" scope="row">
+                  <!-- Email input field -->
+                  <div class="form-group">
+                    <label for="email">
+                      <h4>Email</h4>
+                    </label>
+                    <input type="email" class="form-control" id="email" placeholder="Please enter your email address so I can get back to you."
+                      oninput="
+                        if (this.value.match(/^[^@]+@[^@]+\.[^@]+$/)) {
+                          document.getElementById('order-now-button').disabled = false
+                        } else {
+                          document.getElementById('order-now-button').disabled = true
+                        }
+                      "
+                    >
+                  </div>
+                  <!-- Order now button, disabled by default -->
+                  <button class="btn btn-primary btn-lg mt-2" onclick="orderNow()" id="order-now-button" disabled>
+                    Request
+                  </button>
+                  <!-- Spinner for when the order is being processed, invisible by default -->
+                  <div class="spinner-border float-end mx-5" role="status" id="order-now-spinner" style="display: none;">
+                  </div>
+                  <!-- Success message for when the order is sent, invisible by default -->
+                  <div class="alert alert-success float-end mx-5" role="alert" id="order-now-success" style="display: none;">
+                    Your order has been sent, I will get back to you soon!
+                  </div>
+                  <!-- Error message for when the order is not sent, invisible by default -->
+                  <div class="alert alert-danger float-end mx-5" role="alert" id="order-now-error" style="display: none;">
+                    There was an error sending your order, please send a screenshot of this page to <a href="mailto:vzakharov@gmail.com">vzakharov@gmail.com</a>
+                  </div>
+              </tr>
+              <script>
+                // calculate the grand total words and price
+                calculateGrandTotalWords()
+
+                // function to order, which creates and opens an email with all the inputted data, ready to be sent to vzakharov@gmail.com
+                function orderNow() {
+                  // general info
+                  let generalInfo = document.getElementById('general-info').value
+
+                  // a descriptive string for each of the items in the global items array
+                  let itemsString = items.map(item => {
+                    let copyType = item.getElementsByClassName('copy-type')[0].value
+                    let copyLength = item.getElementsByClassName('copy-length')[0].value
+                    let wordsPerPiece = item.getElementsByClassName('words-per-piece')[0].value
+                    let quantity = item.getElementsByClassName('quantity')[0].value
+                    let totalWords = item.getElementsByClassName('total-words')[0].value
+                    let comments = item.getElementsByClassName('comments')[0].value
+                    return `- ${quantity} x ${copyType} (${wordsPerPiece} words per each) = ${totalWords} words, comments: ${comments}`
+                  }).join('\n')
+
+                  // totals
+                  let grandTotalWords = document.getElementById('grand-total-words').innerText.match(/\d+/)[0]
+                  let grandTotalPrice = document.getElementById('grand-total-price').innerText.match(/\d+/)[0]
+
+                  // email copy
+                  let emailCopy =
+`${generalInfo || '(No general info)'}
+${itemsString}
+
+TOTAL: [b]${grandTotalWords}[/b] words = $[b]${grandTotalPrice}[/b]
+`
+
+                  // subject line
+                  let subject = 
+`${grandTotalWords} words (${
+  items[0].getElementsByClassName('copy-type')[0].value
+  + (
+    items.length > 1 ? ' and more' : ''
+  )
+})`
+
+                  // email
+                  let email = document.getElementById('email').value
+
+                  // replace the button with the spinner
+                  document.getElementById('order-now-button').style.display = 'none'
+                  document.getElementById('order-now-spinner').style.display = 'block'
+                                    
+                  // send an API request
+                  fetch('https://b.ideality.app/api/1.1/wf/sendEmailToVova', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      emailCopy,
+                      subject,
+                      email
+                    })
+                  }).then(response => {
+                    // if the request was successful, show the success message and hide the spinner
+                    if (response.ok) {
+                      document.getElementById('order-now-success').style.display = 'block'
+                      document.getElementById('order-now-spinner').style.display = 'none'
+                    } else {
+                      // if the request was not successful, show the error message and hide the spinner
+                      document.getElementById('order-now-error').style.display = 'block'
+                      document.getElementById('order-now-spinner').style.display = 'none'
+                    }
+                  })
+                }
+              </script>
+            </tfoot>
+          </table>
+          <div>
+            <p>
+              <sup>*</sup>
+              The price indicated is for reference only and is subject to change depending on factors such as 
+              project complexity, deadline, etc.
+            </p>
+          </div>
+
+              
