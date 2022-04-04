@@ -223,7 +223,7 @@
               <tr class="copy-line">
                 <td>
                   <div class="form-group">
-                    <select class="form-control copy-type">
+                    <select class="form-control copy-type form-select">
                       <option value="landingPage">Landing page</option>
                       <option value="blogPost">Blog post</option>
                       <option value="email">Email</option>
@@ -238,7 +238,7 @@
                 </td>
                 <td>
                   <div class="form-group">
-                    <select class="form-control copy-length">
+                    <select class="form-control copy-length form-select">
                       <option value="medium">Normal</option>
                       <option value="short">Short</option>
                       <option value="long">Long</option>
@@ -372,14 +372,14 @@
                     Request
                   </button>
                   <!-- Spinner for when the order is being processed, invisible by default -->
-                  <div class="spinner-border float-end mx-5" role="status" id="order-now-spinner" style="display: none;">
+                  <div class="spinner-border mx-5" role="status" id="order-now-spinner" style="display: none;">
                   </div>
                   <!-- Success message for when the order is sent, invisible by default -->
-                  <div class="alert alert-success float-end mx-5" role="alert" id="order-now-success" style="display: none;">
+                  <div class="alert alert-success mx-5" role="alert" id="order-now-success" style="display: none;">
                     Your order has been sent, I will get back to you soon!
                   </div>
                   <!-- Error message for when the order is not sent, invisible by default -->
-                  <div class="alert alert-danger float-end mx-5" role="alert" id="order-now-error" style="display: none;">
+                  <div class="alert alert-danger mx-5" role="alert" id="order-now-error" style="display: none;">
                     There was an error sending your order, please send a screenshot of this page to <a href="mailto:vzakharov@gmail.com">vzakharov@gmail.com</a>
                   </div>
               </tr>
@@ -464,5 +464,8 @@ TOTAL: [b]${grandTotalWords}[/b] words = $[b]${grandTotalPrice}[/b]
               project complexity, deadline, etc.
             </p>
           </div>
-
-              
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
